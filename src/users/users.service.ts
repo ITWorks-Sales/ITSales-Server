@@ -14,7 +14,7 @@ export class UsersService {
 
   async create(userDto: CreateUserDto): Promise<User> {
     const { code, email, name, password } = userDto;
-    if (code === 'uncrackableCodeForCreation')
+    if (code === 'uncrackableCodeForCreation#@67893247@%397643ppods;lqw')
       return this.usersRepository.save({
         email,
         name,

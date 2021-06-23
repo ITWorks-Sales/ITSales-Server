@@ -22,7 +22,6 @@ export class LinkedinProfileController {
   @Get()
   @HttpCode(HttpStatus.OK)
   profiles(@Request() req) {
-    console.log(req.user);
     return this.linkedinProfileService.findAll(req.user.id);
   }
 

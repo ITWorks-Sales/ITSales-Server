@@ -34,7 +34,6 @@ export class ProxyController {
   @Put()
   @HttpCode(HttpStatus.OK)
   async update(@Request() req, @Body() updateProxyDto: UpdateProxyDTO) {
-    console.log(updateProxyDto);
     const { id } = updateProxyDto;
     const proxy = await this.proxyService.findOneByIdWithUser(id);
 

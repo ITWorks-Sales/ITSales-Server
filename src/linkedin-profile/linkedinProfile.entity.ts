@@ -1,3 +1,4 @@
+import { MessageHistory } from 'src/message-history/messageHistory.entity';
 import {
   Entity,
   Column,
@@ -5,6 +6,7 @@ import {
   OneToOne,
   JoinColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import { Proxy } from '../proxy/proxy.entity';
 import { User } from '../users/user.entity';
@@ -34,4 +36,10 @@ export class LinkedinProfile {
   @OneToOne(() => Proxy, { eager: true })
   @JoinColumn()
   proxy: Proxy;
+
+  @OneToMany(
+    () => MessageHistory,
+    (message_history) => message_history.linekdin_profile,
+  )
+  message_histories: MessageHistory[];
 }

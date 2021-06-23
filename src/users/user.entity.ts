@@ -24,7 +24,6 @@ export class User {
   )
   linkedin_profiles: LinkedinProfile[];
 }
-
 export interface IUser {
   id: number;
   email: string;
