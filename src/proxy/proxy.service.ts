@@ -33,7 +33,6 @@ export class ProxyService {
 
   async create(createProxyDto: CreateProxyDTO, req): Promise<Proxy> {
     const { ip, login, password } = createProxyDto;
-    console.log(createProxyDto);
     return await this.proxyRepository.save({
       ip,
       login,

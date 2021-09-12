@@ -7,10 +7,11 @@ import { LinkedinProfileModule } from 'src/linkedin-profile/linkedin-profile.mod
 import { MessageHistoryModule } from 'src/message-history/message-history.module';
 import { UsersModule } from 'src/users/users.module';
 import { TagsModule } from 'src/tags/tags.module';
+import InmailNode from 'src/flows/inmailNode.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([LinkedinUser]),
+    TypeOrmModule.forFeature([LinkedinUser, InmailNode]),
     LinkedinProfileModule,
     MessageHistoryModule,
     UsersModule,
@@ -18,5 +19,6 @@ import { TagsModule } from 'src/tags/tags.module';
   ],
   providers: [LinkedinUserService],
   controllers: [LinkedinUserController],
+  exports: [LinkedinUserService],
 })
-export class LinekdinUserModule {}
+export class LinkedinUserModule {}

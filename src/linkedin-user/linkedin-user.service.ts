@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as _ from 'lodash';
 import {
@@ -7,13 +7,14 @@ import {
   paginate,
   Pagination,
 } from 'nestjs-typeorm-paginate';
+import { nodeDetails, nodeType } from 'src/flows/types';
 import { LinkedinProfileService } from 'src/linkedin-profile/linkedin-profile.service';
 import { LIUserContact } from 'src/liuser-contact/liuser-contact.entity';
 import { MessageHistoryService } from 'src/message-history/message-history.service';
 import { MessageHistory } from 'src/message-history/messageHistory.entity';
 import { TagsService } from 'src/tags/tags.service';
 import { UsersService } from 'src/users/users.service';
-import { Repository } from 'typeorm';
+import { QueryBuilder, Repository, SelectQueryBuilder } from 'typeorm';
 import { LIHelperType } from './dto/create-lihelper.dto';
 import { UpdateLIUserDTO } from './dto/update-liuser.dto';
 import { UpdateTagLIUserDTO } from './dto/update-tag-liuser.dto';
@@ -259,10 +260,10 @@ export class LinkedinUserService {
     return this.linekdinUserRepository.findOne(id);
   }
 
-  async paginate(
-    options: IPaginationOptions,
+  queryBuilderFilters(
     filters: CRMFilters,
-  ): Promise<Pagination<LinkedinUser>> {
+    nodeDetails?: nodeDetails,
+  ): SelectQueryBuilder<LinkedinUser> {
     const {
       contactDateFilter,
       premiumProfileFilter,
@@ -299,6 +300,36 @@ export class LinkedinUserService {
       });
     }
 
+    if (nodeDetails) {
+      const { id, type, nodeType } = nodeDetails;
+      if (nodeType === 'Inmail') {
+        if (type === 'failed_users') {
+          queryBuilder.innerJoin(
+            'user.inmail_failed',
+            'inmailNodes',
+            'inmailNodes.id = :id',
+            { id },
+          );
+        }
+        if (type === 'success_users') {
+          queryBuilder.innerJoin(
+            'user.inmail_success',
+            'inmailNodes',
+            'inmailNodes.id = :id',
+            { id },
+          );
+        }
+      }
+      if (nodeType === 'Queue') {
+        queryBuilder.innerJoin(
+          'user.queue_collected',
+          'queueNodes',
+          'queueNodes.id = :id',
+          { id },
+        );
+      }
+    }
+
     if (contactDateFilter.length > 0) {
       queryBuilder.andWhere('liUserContact.last_time_of_contact < :before', {
         before: contactDateFilter[contactDateFilter.length - 1],
@@ -309,8 +340,17 @@ export class LinkedinUserService {
         });
       }
     }
-    queryBuilder.leftJoinAndSelect('user.tags', 'tags');
 
+    queryBuilder.leftJoinAndSelect('user.tags', 'tags');
+    return queryBuilder;
+  }
+
+  async paginate(
+    options: IPaginationOptions,
+    filters: CRMFilters,
+    nodeDetails?: nodeDetails,
+  ): Promise<Pagination<LinkedinUser>> {
+    const queryBuilder = this.queryBuilderFilters(filters, nodeDetails);
     return paginate<LinkedinUser, IPaginationMeta>(queryBuilder, options);
   }
 

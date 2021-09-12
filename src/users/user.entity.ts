@@ -1,3 +1,4 @@
+import { Template } from 'src/templates/template.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { LinkedinProfile } from '../linkedin-profile/linkedinProfile.entity';
 import { Proxy } from '../proxy/proxy.entity';
@@ -23,6 +24,9 @@ export class User {
     (liProfile: LinkedinProfile) => liProfile.user,
   )
   linkedin_profiles: LinkedinProfile[];
+
+  @OneToMany(() => Template, (template) => template.user)
+  templates: Template[];
 }
 export interface IUser {
   id: number;

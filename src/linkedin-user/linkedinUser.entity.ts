@@ -1,3 +1,5 @@
+import InmailNode from 'src/flows/inmailNode.entity';
+import QueueNode from 'src/flows/queueNode.entity';
 import { LinkedinProfile } from 'src/linkedin-profile/linkedinProfile.entity';
 import { LIUserContact } from 'src/liuser-contact/liuser-contact.entity';
 import { MessageHistory } from 'src/message-history/messageHistory.entity';
@@ -39,6 +41,15 @@ export class LinkedinUser {
   @ManyToMany(() => Tag, { eager: true })
   @JoinTable()
   tags: Tag[];
+
+  @ManyToMany(() => InmailNode, (nodes) => nodes.success_users)
+  inmail_success: InmailNode;
+
+  @ManyToMany(() => InmailNode, (nodes) => nodes.failed_users)
+  inmail_failed: InmailNode;
+
+  @ManyToMany(() => QueueNode, (nodes) => nodes.collected_users)
+  queue_collected: QueueNode;
 
   @OneToMany(
     () => MessageHistory,

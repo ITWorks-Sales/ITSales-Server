@@ -1,4 +1,6 @@
+import Flow from 'src/flows/flow.entity';
 import { MessageHistory } from 'src/message-history/messageHistory.entity';
+import { Template } from 'src/templates/template.entity';
 import {
   Entity,
   Column,
@@ -42,4 +44,10 @@ export class LinkedinProfile {
     (message_history) => message_history.linekdin_profile,
   )
   message_histories: MessageHistory[];
+
+  @OneToMany(() => Template, (template) => template.linkedin_profile)
+  templates: Template[];
+
+  @OneToMany(() => Flow, (flow) => flow.linkedin_profile)
+  flows: Flow[];
 }

@@ -10,6 +10,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
+import { nodeDetails } from 'src/flows/types';
 import { CreateLIHelperDto } from './dto/create-lihelper.dto';
 import { UpdateLIUserDTO } from './dto/update-liuser.dto';
 import { UpdateTagLIUserDTO } from './dto/update-tag-liuser.dto';
@@ -48,12 +49,18 @@ export class LinkedinUserController {
   async getPaginated(
     @Query('options') options: string,
     @Query('filters') filters: string,
+    @Query('paginationNodeDetails') nodeDetails: string,
   ) {
     const paginationOptions = JSON.parse(options) as IPaginationOptions;
     const paginationFilters = JSON.parse(filters) as CRMFilters;
+    let paginationNodeDetails: nodeDetails;
+    if (nodeDetails) {
+      paginationNodeDetails = JSON.parse(nodeDetails);
+    }
     return this.linkedinUserService.paginate(
       paginationOptions,
       paginationFilters,
+      paginationNodeDetails,
     );
   }
 
