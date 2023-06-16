@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { FlowsService } from './flows.service';
 import { FlowsController } from './flows.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,9 +12,10 @@ import { LinkedinUserModule } from 'src/linkedin-user/linkedin-user.module';
   imports: [
     TypeOrmModule.forFeature([Edge, InmailNode, QueueNode, Flow]),
     LinkedinProfileModule,
-    LinkedinUserModule,
+    forwardRef(() => LinkedinUserModule),
   ],
   providers: [FlowsService],
   controllers: [FlowsController],
+  exports: [FlowsService],
 })
 export class FlowsModule {}

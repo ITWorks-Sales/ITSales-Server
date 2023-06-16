@@ -10,8 +10,10 @@ import {
   Put,
 } from '@nestjs/common';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
+import { queue } from 'rxjs';
 import { nodeDetails } from 'src/flows/types';
 import { CreateLIHelperDto } from './dto/create-lihelper.dto';
+import { CreateLIUserSNCDTO } from './dto/create-liuser-SNC.dto';
 import { UpdateLIUserDTO } from './dto/update-liuser.dto';
 import { UpdateTagLIUserDTO } from './dto/update-tag-liuser.dto';
 import { LinkedinUserService } from './linkedin-user.service';
@@ -36,6 +38,24 @@ export class LinkedinUserController {
       req.user.id,
     );
     return;
+  }
+
+  @Post('/SNCollecting')
+  @HttpCode(HttpStatus.CREATED)
+  async createSNC(
+    @Request() req,
+    @Body() CreateLIUserSNC: CreateLIUserSNCDTO,
+    @Query('queueId') queueId: number,
+    @Query('linkedinProfileId') linkedinProfileId: number,
+  ) {
+    const { elements } = CreateLIUserSNC;
+
+    return await this.linkedinUserService.createFromSN(
+      elements,
+      queueId,
+      linkedinProfileId,
+      req.user.id,
+    );
   }
 
   @Get('')

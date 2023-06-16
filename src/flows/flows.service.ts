@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LinkedinProfileService } from 'src/linkedin-profile/linkedin-profile.service';
 import { Repository } from 'typeorm';
@@ -33,6 +33,7 @@ export class FlowsService {
     @InjectRepository(QueueNode)
     private queueNodeRepository: Repository<QueueNode>,
     private linkedinProfileService: LinkedinProfileService,
+    @Inject(forwardRef(() => LinkedinUserService))
     private linkedinUserService: LinkedinUserService,
   ) {}
 
@@ -216,5 +217,13 @@ export class FlowsService {
     if (deleteEdgesDto.edgeIds.length > 0)
       await this.edgeRepository.delete(deleteEdgesDto.edgeIds);
     return;
+  }
+
+  async findOneQueue(id: number) {
+    return await this.queueNodeRepository.findOne(id);
+  }
+
+  async updateQueue(queue: QueueNode) {
+    return await this.queueNodeRepository.save(queue);
   }
 }

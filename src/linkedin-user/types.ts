@@ -10,6 +10,7 @@ export type ILIUserState =
 export type updateTagLIUserType = 'add' | 'remove';
 
 export type CRMFilters = {
+  nameSearchFilter: string;
   contactDateFilter: string[];
   premiumProfileFilter: boolean;
   openProfileFilter: boolean;

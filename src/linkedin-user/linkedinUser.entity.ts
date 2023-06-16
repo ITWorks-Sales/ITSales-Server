@@ -64,7 +64,7 @@ export class LinkedinUser {
   @Column({ default: 'No Action' })
   state: ILIUserState;
 
-  @Column()
+  @Column({ default: '' })
   full_name: string;
 
   @Column()
@@ -79,7 +79,7 @@ export class LinkedinUser {
   @Column()
   avatar_url: string;
 
-  @Column()
+  @Column({ nullable: true })
   public_id: string;
 
   @Column()
@@ -87,9 +87,6 @@ export class LinkedinUser {
 
   @Column({ default: null })
   member_id: number;
-
-  @Column({ default: '' })
-  avatar_id: string;
 
   @Column({ default: '' })
   headline: string;

@@ -16,10 +16,13 @@ import { TagsService } from 'src/tags/tags.service';
 import { UsersService } from 'src/users/users.service';
 import { QueryBuilder, Repository, SelectQueryBuilder } from 'typeorm';
 import { LIHelperType } from './dto/create-lihelper.dto';
+import { Element } from './dto/create-liuser-SNC.dto';
 import { UpdateLIUserDTO } from './dto/update-liuser.dto';
 import { UpdateTagLIUserDTO } from './dto/update-tag-liuser.dto';
 import { LinkedinUser } from './linkedinUser.entity';
 import { CRMFilters } from './types';
+import { parseName } from 'humanparser';
+import { FlowsService } from 'src/flows/flows.service';
 
 @Injectable()
 export class LinkedinUserService {
@@ -30,7 +33,115 @@ export class LinkedinUserService {
     private messageHistoryService: MessageHistoryService,
     private tagsServies: TagsService,
     private usersService: UsersService,
+    @Inject(forwardRef(() => FlowsService))
+    private flowsService: FlowsService,
   ) {}
+
+  async createFromSN(
+    elements: Element[],
+    queueId: number,
+    linkedinProfileId: number,
+    userId: number,
+  ) {
+    const convertedDto: LinkedinUser[] = [];
+
+    console.time();
+
+    const linkedinProfile = await this.linkedinProfileService.findOneById(
+      linkedinProfileId,
+    );
+    const user = await this.usersService.findOneById(userId);
+    const queue = await this.flowsService.findOneQueue(queueId);
+
+    // const queue = await this.qu
+
+    for (const element of elements) {
+      // If user was already added by another LinkedinProfile in the DB
+      const snHashId = element.entityUrn.match(/\(([^)]+)\)/)[1];
+      const hash_id = snHashId.split(',')[0];
+      const member_id = element.objectUrn.split(':')[3];
+
+      if (member_id) {
+        const linkedinUserFoundInDB = await this.findOneByMemberId(member_id);
+        if (linkedinUserFoundInDB) {
+          if (
+            linkedinUserFoundInDB.linkedin_profiles.find(
+              (linkedin_profile) => linkedin_profile.id === linkedinProfile.id,
+            )
+          )
+            continue;
+          const messageHistory = await this.messageHistoryService.create(
+            linkedinProfile,
+            linkedinUserFoundInDB,
+          );
+          linkedinUserFoundInDB.message_histories.push(messageHistory);
+          linkedinUserFoundInDB.linkedin_profiles.push(linkedinProfile);
+          convertedDto.push(linkedinUserFoundInDB);
+          continue;
+        }
+      }
+
+      const liuserContact = new LIUserContact();
+      const messageHistory = new MessageHistory();
+      messageHistory.linekdin_profile = linkedinProfile;
+      messageHistory.messages = [];
+
+      const convertedObj = <LinkedinUser>{};
+
+      convertedObj.users = [user];
+      convertedObj.linkedin_profiles = [linkedinProfile];
+      convertedObj.message_histories = [messageHistory];
+      convertedObj.liUserContact = liuserContact;
+
+      convertedObj.full_name = element.fullName;
+      convertedObj.first_name = element.firstName;
+      convertedObj.last_name = element.lastName;
+      convertedObj.profile_url = `https://www.linkedin.com/sales/people/${hash_id}`;
+      convertedObj.public_id = '';
+      convertedObj.hash_id = hash_id;
+      convertedObj.member_id = parseInt(member_id);
+      convertedObj.location = element.geoRegion;
+      convertedObj.open_profile = element.openLink;
+      convertedObj.premium = element.premium;
+
+      const currentCompany = element.currentPositions[0];
+      convertedObj.current_company_name = currentCompany.companyName;
+      convertedObj.current_company_position = currentCompany.title;
+
+      convertedObj.avatar_url = '';
+      if (element.profilePictureDisplayImage) {
+        const imgArtifacts = element.profilePictureDisplayImage.artifacts;
+        const fileIdSegment =
+          imgArtifacts[imgArtifacts.length - 1].fileIdentifyingUrlPathSegment;
+        convertedObj.avatar_url = `${element.profilePictureDisplayImage.rootUrl}${fileIdSegment}`;
+      }
+
+      for (let i = 1; i <= 10; i++) {
+        if (i > element.currentPositions.length) break;
+        const {
+          companyName,
+          companyUrn,
+          startedOn,
+          title,
+        } = element.currentPositions[i - 1];
+        convertedObj[`company_name_${i}`] = companyName;
+        convertedObj[`company_id_${i}`] = companyUrn.split(':')[3];
+        convertedObj[`company_position_${i}`] = title;
+        convertedObj[
+          `company_start_date_${i}`
+        ] = `${startedOn.year}.${startedOn.month}`;
+      }
+      convertedDto.push(convertedObj);
+    }
+
+    const savedUsers = await this.linekdinUserRepository.save(convertedDto, {
+      chunk: 25,
+    });
+    queue.collected_users.push(...savedUsers);
+    this.flowsService.updateQueue(queue);
+    console.timeEnd();
+    return convertedDto.length;
+  }
 
   async createFromLIHelper(
     liHelperData: LIHelperType[],
@@ -46,9 +157,9 @@ export class LinkedinUserService {
 
     for (const linkedinUser of liHelperData) {
       // If user was already added by another LinkedinProfile in the DB
-      if (linkedinUser.hash_id) {
-        const linkedinUserFoundInDB = await this.findOneByHashId(
-          linkedinUser.hash_id,
+      if (linkedinUser.member_id) {
+        const linkedinUserFoundInDB = await this.findOneByMemberId(
+          linkedinUser.member_id,
         );
 
         if (linkedinUserFoundInDB) {
@@ -86,10 +197,8 @@ export class LinkedinUserService {
       convertedObj.last_name = linkedinUser.last_name;
       convertedObj.profile_url = linkedinUser.profile_url;
       convertedObj.avatar_url = linkedinUser.avatar;
-      convertedObj.public_id = linkedinUser.public_id;
       convertedObj.hash_id = linkedinUser.hash_id;
       convertedObj.member_id = pasrseIntIfExists(linkedinUser.member_id);
-      convertedObj.avatar_id = linkedinUser.avatar_id;
       convertedObj.headline = linkedinUser.headline;
       convertedObj.location = linkedinUser.location_name;
       convertedObj.industry = linkedinUser.industry;
@@ -270,12 +379,19 @@ export class LinkedinUserService {
       openProfileFilter,
       userStateFilter,
       tagsFilter,
+      nameSearchFilter,
     } = filters;
 
     const queryBuilder = this.linekdinUserRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.liUserContact', 'liUserContact')
       .leftJoinAndSelect('user.linkedin_profiles', 'linkedin_profiles');
+
+    if (nameSearchFilter) {
+      queryBuilder.andWhere('user.full_name ilike :name', {
+        name: `%${nameSearchFilter}%`,
+      });
+    }
 
     if (premiumProfileFilter)
       queryBuilder.andWhere('user.premium = :premium', {
@@ -359,6 +475,12 @@ export class LinkedinUserService {
   ): Promise<LinkedinUser | undefined> {
     return await this.linekdinUserRepository.findOne({
       where: { hash_id: linkedinUserHashId },
+    });
+  }
+
+  async findOneByMemberId(memberId: string): Promise<LinkedinUser | undefined> {
+    return await this.linekdinUserRepository.findOne({
+      where: { member_id: memberId },
     });
   }
 }

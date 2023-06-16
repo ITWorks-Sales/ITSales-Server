@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { LinkedinUserService } from './linkedin-user.service';
 import { LinkedinUserController } from './linkedin-user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -8,6 +8,7 @@ import { MessageHistoryModule } from 'src/message-history/message-history.module
 import { UsersModule } from 'src/users/users.module';
 import { TagsModule } from 'src/tags/tags.module';
 import InmailNode from 'src/flows/inmailNode.entity';
+import { FlowsModule } from 'src/flows/flows.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import InmailNode from 'src/flows/inmailNode.entity';
     MessageHistoryModule,
     UsersModule,
     TagsModule,
+    forwardRef(() => FlowsModule),
   ],
   providers: [LinkedinUserService],
   controllers: [LinkedinUserController],
